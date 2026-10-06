@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 110" fill="none">
+  <!-- Rounded Emblem Icon -->
+  <rect x="5" y="10" width="85" height="85" rx="22" fill="#123d00"/>
+  <path d="M22 62C26 44 38 32 54 30C70 28 80 40 82 54" stroke="#b9b474" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="47" y="60" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="'Plus Jakarta Sans', sans-serif" font-size="24" font-weight="800" letter-spacing="1.5">QGU</text>
+  <path d="M25 64L72 64" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Brand Typography -->
+  <text x="110" y="52" fill="#082500" font-family="'Oswald', sans-serif" font-size="34" font-weight="700" letter-spacing="2.5">ESCRITORES QGU</text>
+  <text x="112" y="80" fill="#646029" font-family="'Plus Jakarta Sans', sans-serif" font-size="14" font-weight="700" letter-spacing="3.8">PROCESSO SELETIVO • COMIEADEPA</text>
+</svg>
