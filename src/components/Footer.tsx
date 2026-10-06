@@ -8,6 +8,16 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onGoToLogin, compact = false, className = '' }) => {
+  const handleLoginClick = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (onGoToLogin) {
+      onGoToLogin();
+    } else {
+      window.history.pushState(null, '', '/login');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
   if (compact) {
     return (
       <footer className={`bg-[#edefe9] border-t border-[#c2c9b9]/60 py-2 sm:py-2.5 text-[11px] text-[#73796c] shrink-0 ${className}`}>
@@ -34,9 +44,24 @@ export const Footer: React.FC<FooterProps> = ({ onGoToLogin, compact = false, cl
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-[#c2c9b9]/40">
           {/* Logo Brand in Footer */}
           <div className="flex items-center gap-3">
-            <LogoQGU className="w-10 h-10 rounded-xl shadow-xs" />
+            <LogoQGU
+              onClick={handleLoginClick}
+              className="w-10 h-10 rounded-xl shadow-xs cursor-pointer hover:opacity-90 hover:scale-105 transition-all"
+              title="Acessar Login (/login)"
+            />
             <div>
-              <p className="font-display font-semibold text-sm tracking-wider text-[#082500]">
+              <p
+                onClick={handleLoginClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleLoginClick();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                className="font-display font-semibold text-sm tracking-wider text-[#082500] cursor-pointer hover:text-[#123d00] hover:underline transition-colors select-none focus:outline-none focus:ring-1 focus:ring-[#123d00] rounded-xs"
+                title="Acessar Login (/login)"
+              >
                 ESCRITORES QGU
               </p>
               <p className="text-[11px] text-[#42493d]">

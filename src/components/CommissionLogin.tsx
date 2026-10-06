@@ -252,8 +252,20 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
         <div className="bg-white border border-[#c2c9b9]/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#123d00] text-white flex items-center justify-center mx-auto shadow-sm border border-[#2a5912]">
-              <Lock className="w-6 h-6 text-[#a2d486]" />
+            <div
+              onClick={onBackToPublic}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onBackToPublic();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              className="w-12 h-12 rounded-2xl bg-[#123d00] text-white flex items-center justify-center mx-auto shadow-sm border border-[#2a5912] cursor-pointer hover:bg-[#1a4f03] hover:scale-105 active:scale-95 transition-all select-none focus:outline-none focus:ring-2 focus:ring-[#123d00] focus:ring-offset-2 group"
+              title="Voltar para a vitrine pública"
+            >
+              <Lock className="w-6 h-6 text-[#a2d486] group-hover:rotate-[-6deg] transition-transform" />
             </div>
             <span className="text-[10px] font-bold text-[#646029] uppercase tracking-widest block">
               ESCRITORES QGU
@@ -390,6 +402,14 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
             >
               <span>{isLoading ? 'Entrando...' : 'Entrar'}</span>
               {!isLoading && <ArrowRight className="w-4 h-4" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={onBackToPublic}
+              className="w-full text-center text-xs text-[#555d4e] hover:text-[#123d00] font-medium transition-colors cursor-pointer py-1"
+            >
+              ← Voltar
             </button>
           </form>
         </div>
