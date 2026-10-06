@@ -262,44 +262,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
   const [aulasByTurma, setAulasByTurma] = useState<Record<string, TurmaAula[]>>(() => {
     const map: Record<string, TurmaAula[]> = {};
     turmas.forEach((t) => {
-      if (t.aulas && t.aulas.length > 0) {
-        map[t.id] = t.aulas;
-      } else if (t.id === 'turma-2026') {
-        map[t.id] = [
-          {
-            id: 'aula-1',
-            turmaId: t.id,
-            data: '2026-10-10',
-            moduloId: 'disc-1',
-            moduloTitulo: 'Módulo 1: Leitura de Textos',
-            assunto: 'Introdução e Técnicas de Leitura Bíblica',
-            link: 'https://meet.google.com/qgu-2026-comieadepa',
-            presencas: {},
-          },
-          {
-            id: 'aula-2',
-            turmaId: t.id,
-            data: '2026-10-17',
-            moduloId: 'disc-2',
-            moduloTitulo: 'Módulo 2: Abrangência Teológica',
-            assunto: 'Debates Teológicos Contemporâneos',
-            link: '',
-            presencas: {},
-          },
-          {
-            id: 'aula-3',
-            turmaId: t.id,
-            data: '2026-10-24',
-            moduloId: 'disc-3',
-            moduloTitulo: 'Módulo 3: Método Teológico',
-            assunto: 'Estruturação de Textos Doutrinários',
-            link: 'https://meet.google.com/qgu-metodo-teologico',
-            presencas: {},
-          },
-        ];
-      } else {
-        map[t.id] = [];
-      }
+      map[t.id] = t.aulas && t.aulas.length > 0 ? t.aulas : [];
     });
     return map;
   });
@@ -493,23 +456,23 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
 
   // Form State for Create / Edit Turma
   const defaultFormData: TurmaFormData = {
-    id: 'turma-2026',
-    name: 'Turma 2026 • Formação de Escritores Teológicos',
-    urlSlug: 'turma2026',
-    vagas: 40,
-    status: 'Em Andamento',
-    editalResumo: 'Edital N° 01/2026 - COMIEADEPA. Seleção e capacitação canônica de novos autores teológicos da convenção.',
-    dataInicioInscricoes: '10/01/2026',
-    dataFimInscricoes: '31/03/2026',
-    dataInicioAulas: '01/10/2026',
-    dataConclusao: '10/12/2026',
-    diaSemana: 'Quintas-feiras',
-    horario: '20h00',
-    dataInicioGrade: '01/10/2026',
-    dataFimGrade: '10/12/2026',
+    id: '',
+    name: '',
+    urlSlug: '',
+    vagas: 30,
+    status: 'Aberto',
+    editalResumo: '',
+    dataInicioInscricoes: '',
+    dataFimInscricoes: '',
+    dataInicioAulas: '',
+    dataConclusao: '',
+    diaSemana: '',
+    horario: '',
+    dataInicioGrade: '',
+    dataFimGrade: '',
     modalidade: 'Encontros Síncronos Semanais',
-    linkEncontro: 'https://meet.google.com/qgu-2026-comieadepa',
-    selectedDisciplinasIds: ['disc-1', 'disc-2', 'disc-3', 'disc-4', 'disc-5'],
+    linkEncontro: '',
+    selectedDisciplinasIds: [],
   };
 
   const [turmaForm, setTurmaForm] = useState<TurmaFormData>(defaultFormData);
@@ -535,7 +498,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
   // Students for the active turma
   const turmaStudents = useMemo(() => {
     if (!currentTurma) return [];
-    return students.filter((s) => s.turmaId === currentTurma.id || (!s.turmaId && currentTurma.id === 'turma-2026'));
+    return students.filter((s) => s.turmaId === currentTurma.id);
   }, [students, currentTurma]);
 
   // Filtered students for Alunos matriculados tab
@@ -553,7 +516,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
   // Avisos for the active turma
   const turmaAvisos = useMemo(() => {
     if (!currentTurma) return [];
-    return avisos.filter((a) => a.turmaId === currentTurma.id || (!a.turmaId && currentTurma.id === 'turma-2026'));
+    return avisos.filter((a) => a.turmaId === currentTurma.id);
   }, [avisos, currentTurma]);
 
   // Sort avisos: pinned first, then by date
@@ -773,7 +736,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       const totalEncontros = Math.max(aulasComChamada.length, 1);
 
       const updatedStudentsList = students.map((st) => {
-        if (st.turmaId === currentTurma.id || (!st.turmaId && currentTurma.id === 'turma-2026')) {
+        if (st.turmaId === currentTurma.id) {
           let presencasCount = 0;
           aulasComChamada.forEach((a) => {
             if (a.presencas?.[st.alunoId] === 'presente') {
@@ -801,32 +764,27 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
   const handleOpenCreateTurma = () => {
     setTurmaToEdit(null);
     setIdError(null);
-    const baseYear = new Date().getFullYear();
-    let suggestedId = `turma-${baseYear}`;
-    let counter = 2;
-    while (turmas.some((t) => t.id.toLowerCase() === suggestedId.toLowerCase())) {
-      suggestedId = `turma-${baseYear}-${counter}`;
-      counter++;
-    }
+    const uniqueSuffix = Date.now().toString().slice(-4);
+    const suggestedId = `turma-${uniqueSuffix}`;
 
     setTurmaForm({
       id: suggestedId,
       name: '',
-      urlSlug: suggestedId.replace(/[^a-z0-9]/g, ''),
-      vagas: 40,
-      status: 'Em Andamento',
-      editalResumo: 'Edital de Formação Teológica e Literária - COMIEADEPA.',
-      dataInicioInscricoes: '10/01/2026',
-      dataFimInscricoes: '31/03/2026',
-      dataInicioAulas: '01/10/2026',
-      dataConclusao: '10/12/2026',
-      diaSemana: 'Quintas-feiras',
-      horario: '20h00',
-      dataInicioGrade: '01/10/2026',
-      dataFimGrade: '10/12/2026',
+      urlSlug: '',
+      vagas: 30,
+      status: 'Aberto',
+      editalResumo: '',
+      dataInicioInscricoes: '',
+      dataFimInscricoes: '',
+      dataInicioAulas: '',
+      dataConclusao: '',
+      diaSemana: '',
+      horario: '',
+      dataInicioGrade: '',
+      dataFimGrade: '',
       modalidade: 'Encontros Síncronos Semanais',
-      linkEncontro: 'https://meet.google.com/qgu-comieadepa',
-      selectedDisciplinasIds: ['disc-1', 'disc-2', 'disc-3', 'disc-4', 'disc-5'],
+      linkEncontro: '',
+      selectedDisciplinasIds: [],
     });
     setShowTurmaModal(true);
   };
@@ -970,7 +928,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       const newTurma: Turma = {
         id: cleanId,
         name: turmaForm.name,
-        urlSlug: cleanSlug || cleanId.replace(/[^a-z0-9]/g, '') || `turma${new Date().getFullYear()}`,
+        urlSlug: cleanSlug || cleanId.replace(/[^a-z0-9]/g, '') || `turma${Date.now().toString().slice(-4)}`,
         status: turmaForm.status,
         editalResumo: turmaForm.editalResumo,
         dataInicioInscricoes: turmaForm.dataInicioInscricoes,
@@ -982,7 +940,12 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
         matriculadosCount: 0,
         gradeHoraria: gradeData,
         disciplinasIds: turmaForm.selectedDisciplinasIds,
+        disciplinasLiberadasIds: [],
+        professorIds: [],
+        aulas: [],
+        materiaisExtras: [],
       };
+      setAulasByTurma((prev) => ({ ...prev, [cleanId]: [] }));
       onUpdateTurmas([newTurma, ...turmas]);
       setActiveTurmaId(cleanId);
       showToast(`Nova turma "${turmaForm.name}" criada com sucesso! (ID: ${cleanId})`);
@@ -1349,7 +1312,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       // 2. Zera/remove as notas dos alunos nesta disciplina e recalcula a média geral
       if (onUpdateStudents) {
         const updated = students.map((st) => {
-          if (st.turmaId === currentTurma.id || (!st.turmaId && currentTurma.id === 'turma-2026')) {
+          if (st.turmaId === currentTurma.id) {
             const cleanNotas = (st.notas || []).filter(
               (n) => n.disciplinaId !== d.id && n.moduloTitle !== d.nome
             );
@@ -1409,7 +1372,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     }
 
     const updated = students.map((st) => {
-      if (st.turmaId === currentTurma.id || (!st.turmaId && currentTurma.id === 'turma-2026')) {
+      if (st.turmaId === currentTurma.id) {
         const inputVal = notasInputs[st.alunoId];
         const existingNotas = (st.notas || []).filter(
           (n) => n.disciplinaId !== d.id && n.moduloTitle !== d.nome
@@ -1695,7 +1658,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     if (!onUpdateStudents || !currentTurma) return;
 
     const updated = students.map((st) => {
-      if (st.turmaId === currentTurma.id || (!st.turmaId && currentTurma.id === 'turma-2026')) {
+      if (st.turmaId === currentTurma.id) {
         const isPresente = chamadaPresentesMap[st.alunoId] ?? true;
         const totalAulas = st.aulasTotais || 20;
         const newPresencas = isPresente
@@ -1719,7 +1682,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
   const handleSetAll100Frequencia = () => {
     if (!onUpdateStudents || !currentTurma) return;
     const updated = students.map((st) => {
-      if (st.turmaId === currentTurma.id || (!st.turmaId && currentTurma.id === 'turma-2026')) {
+      if (st.turmaId === currentTurma.id) {
         const totalAulas = st.aulasTotais || 20;
         return {
           ...st,
@@ -1747,7 +1710,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     if (!onUpdateStudents || !currentTurma) return;
 
     const updated = students.map((st) => {
-      if ((st.turmaId === currentTurma.id || (!st.turmaId && currentTurma.id === 'turma-2026')) && batchGradesMap[st.alunoId] !== undefined) {
+      if (st.turmaId === currentTurma.id && batchGradesMap[st.alunoId] !== undefined) {
         const grade = batchGradesMap[st.alunoId];
         let status: 'Cursando' | 'Formado' | 'Aprovado' | 'Em Recuperação' = st.statusAcademico;
         if (grade >= 7.0) status = 'Aprovado';
@@ -2591,8 +2554,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
                   ) : (
                     filteredTurmas.map((turma) => {
                       const activeCount =
-                        students.filter((s) => s.turmaId === turma.id || (!s.turmaId && turma.id === 'turma-2026'))
-                          .length || turma.matriculadosCount || 0;
+                        students.filter((s) => s.turmaId === turma.id).length;
                       const turmaProfIds = getTurmaProfessorIds(turma);
 
                       return (
