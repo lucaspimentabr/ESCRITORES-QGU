@@ -18,11 +18,14 @@ import {
   Clock,
   Calendar,
   Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SystemUser, UserRole, Turma } from '../types';
 import { INITIAL_ACADEMIC_MODULES } from '../data/mockAcademicData';
+import { deleteUserFromSupabase } from '../services/supabaseService';
 
 function WhatsAppIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -273,11 +276,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     whatsapp: '',
     campoSupervisao: '',
     role: 'aluno' as UserRole,
-    password: 'comieadepa2026',
-    turmaId: 'turma-2026',
+    password: '',
+    turmaId: '',
     disciplina: '',
     status: 'Ativo' as 'Ativo' | 'Inativo',
   });
+  const [showPasswordInModal, setShowPasswordInModal] = useState(false);
 
   // Notification Toast
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
@@ -296,8 +300,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
       // Turma filter
       if (turmaFilter !== 'ALL') {
-        // If turmaId matches or fallback for legacy
-        if (u.turmaId !== turmaFilter && !(turmaFilter === 'turma-2026' && !u.turmaId)) {
+        if (u.turmaId !== turmaFilter) {
           return false;
         }
       }
@@ -324,6 +327,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   // Open Edit Modal
   const handleOpenEdit = (user: SystemUser) => {
     setUserToEdit(user);
+    setShowPasswordInModal(false);
     setFormData({
       name: user.name,
       email: user.email,
@@ -331,7 +335,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       campoSupervisao: user.campoSupervisao || user.polo || '',
       role: user.role,
       password: user.password,
-      turmaId: user.turmaId || 'turma-2026',
+      turmaId: user.turmaId || '',
       disciplina: user.disciplina || '',
       status: user.status || 'Ativo',
     });
@@ -339,14 +343,15 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   // Open Create Modal
   const handleOpenCreate = () => {
+    setShowPasswordInModal(false);
     setFormData({
       name: '',
       email: '',
       whatsapp: '',
       campoSupervisao: '',
       role: 'aluno',
-      password: 'comieadepa2026',
-      turmaId: turmas[0]?.id || 'turma-2026',
+      password: '',
+      turmaId: turmaFilter !== 'ALL' ? turmaFilter : (turmas[0]?.id || ''),
       disciplina: '',
       status: 'Ativo',
     });
@@ -442,8 +447,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
       setUserToDelete(null);
       return;
     }
-    const updated = users.filter((u) => u.id !== userToDelete.id);
+    const deletedId = userToDelete.id;
+    const updated = users.filter((u) => u.id !== deletedId);
     onUpdateUsers(updated);
+    deleteUserFromSupabase(deletedId);
     notify(`Usuário "${userToDelete.name}" excluído.`);
     setUserToDelete(null);
   };
@@ -984,13 +991,23 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <label className="text-xs font-bold text-[#191c19] block mb-1">
                 Senha de Acesso ao Sistema
               </label>
-              <input
-                type="text"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Senha de acesso"
-                className="w-full px-3.5 py-2 bg-[#f8faf4] border border-[#c2c9b9] rounded-xl text-xs font-mono focus:outline-hidden focus:border-[#123d00]"
-              />
+              <div className="relative">
+                <input
+                  type={showPasswordInModal ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder={userToEdit ? 'Deixe em branco para manter a senha atual' : 'Mínimo 6 caracteres'}
+                  className="w-full pr-10 px-3.5 py-2 bg-[#f8faf4] border border-[#c2c9b9] rounded-xl text-xs font-mono focus:outline-hidden focus:border-[#123d00]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordInModal(!showPasswordInModal)}
+                  className="absolute right-3 top-2.5 text-[#73796c] hover:text-[#191c19] cursor-pointer"
+                  title={showPasswordInModal ? 'Ocultar senha' : 'Ver senha'}
+                >
+                  {showPasswordInModal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#e1e3dd]">

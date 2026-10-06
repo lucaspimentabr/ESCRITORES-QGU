@@ -8,6 +8,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { SystemUser } from '../types';
+import { authenticateUserFromSupabase } from '../services/supabaseService';
 
 interface CommissionLoginProps {
   users?: SystemUser[];
@@ -35,9 +36,30 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
+    const saved = sessionStorage.getItem('login_failed_attempts');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [targetDestination, setTargetDestination] = useState<
     'painel' | 'inscricao' | 'candidato' | 'prova'
   >(redirectedFromModelPage || 'painel');
+
+  // Timer de bloqueio contra ataques de força bruta
+  useEffect(() => {
+    if (lockoutTimer > 0) {
+      const interval = setInterval(() => {
+        setLockoutTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [lockoutTimer]);
 
   useEffect(() => {
     if (redirectedFromModelPage) {
@@ -110,6 +132,11 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
     e.preventDefault();
     setError('');
 
+    if (lockoutTimer > 0) {
+      setError(`Muitas tentativas incorretas. Por segurança, aguarde ${lockoutTimer}s antes de tentar novamente.`);
+      return;
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
@@ -120,9 +147,7 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-
+    (async () => {
       // Check for user-updated password or credentials in localStorage
       const customPassword = localStorage.getItem('escritores_qgu_user_password');
       const storedProfileRaw = localStorage.getItem('escritores_qgu_user_profile');
@@ -158,13 +183,16 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
           roleLabel: 'COORDENAÇÃO TEOLÓGICA (ADMIN)',
           routeSlug: '/Paineladm',
         };
+        setIsLoading(false);
+        sessionStorage.removeItem('login_failed_attempts');
+        setFailedAttempts(0);
         saveSession(adminUser);
         onLoginSuccess(adminUser, targetDestination);
         return;
       }
 
-      // Match against users list
-      const matched = allUsers.find((u) => {
+      // 1. Match against local users list
+      let matched = allUsers.find((u) => {
         const emailMatch =
           u.email.toLowerCase() === cleanEmail ||
           (cleanEmail === 'admin' && u.role === 'admin') ||
@@ -176,16 +204,40 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
         return emailMatch && passMatch;
       });
 
+      // 2. If not found in memory (e.g. newly created user on another device/browser), query Supabase directly
+      if (!matched) {
+        try {
+          const remoteUser = await authenticateUserFromSupabase(cleanEmail, cleanPass);
+          if (remoteUser) {
+            matched = remoteUser;
+          }
+        } catch (err) {
+          console.warn('Erro ao autenticar com Supabase:', err);
+        }
+      }
+
+      setIsLoading(false);
+
       if (matched) {
+        sessionStorage.removeItem('login_failed_attempts');
+        setFailedAttempts(0);
         saveSession(matched);
         const destination = matched.role === 'admin' ? targetDestination : undefined;
         onLoginSuccess(matched, destination);
       } else {
-        setError(
-          'Credenciais não encontradas. Verifique o e-mail e a senha cadastrada para o seu perfil.'
-        );
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        sessionStorage.setItem('login_failed_attempts', String(newAttempts));
+        if (newAttempts >= 5) {
+          setLockoutTimer(30);
+          setError('Limite de 5 tentativas atingido. Acesso temporariamente bloqueado por 30 segundos.');
+        } else {
+          setError(
+            `Credenciais não encontradas. Verifique seus dados. (Tentativa ${newAttempts} de 5)`
+          );
+        }
       }
-    }, 450);
+    })();
   };
 
   const saveSession = (user: SystemUser) => {
@@ -397,11 +449,21 @@ export const CommissionLogin: React.FC<CommissionLoginProps> = ({
 
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full py-3 rounded-2xl bg-[#123d00] hover:bg-[#0d2a00] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer uppercase tracking-wider"
+              disabled={isLoading || lockoutTimer > 0}
+              className={`w-full py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors uppercase tracking-wider ${
+                lockoutTimer > 0
+                  ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                  : 'bg-[#123d00] hover:bg-[#0d2a00] text-white cursor-pointer'
+              }`}
             >
-              <span>{isLoading ? 'Entrando...' : 'Entrar'}</span>
-              {!isLoading && <ArrowRight className="w-4 h-4" />}
+              <span>
+                {isLoading
+                  ? 'Entrando...'
+                  : lockoutTimer > 0
+                  ? `Bloqueado (${lockoutTimer}s)`
+                  : 'Entrar'}
+              </span>
+              {!isLoading && lockoutTimer === 0 && <ArrowRight className="w-4 h-4" />}
             </button>
 
             <button

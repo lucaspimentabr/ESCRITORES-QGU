@@ -44,6 +44,9 @@ import {
   upsertDisciplinaToSupabase,
   fetchAvisosFromSupabase,
   upsertAvisoToSupabase,
+  fetchUsersFromSupabase,
+  upsertUserToSupabase,
+  deleteUserFromSupabase,
 } from './services/supabaseService';
 
 export default function App() {
@@ -198,12 +201,13 @@ export default function App() {
     async function syncSupabaseData() {
       if (!isSupabaseConfigured()) return;
       try {
-        const [remoteCandidates, remoteStudents, remoteTurmas, remoteDisciplinas, remoteAvisos] = await Promise.all([
+        const [remoteCandidates, remoteStudents, remoteTurmas, remoteDisciplinas, remoteAvisos, remoteUsers] = await Promise.all([
           fetchCandidatesFromSupabase(),
           fetchStudentsFromSupabase(),
           fetchTurmasFromSupabase(),
           fetchDisciplinasFromSupabase(),
           fetchAvisosFromSupabase(),
+          fetchUsersFromSupabase(),
         ]);
 
         if (!isMounted) return;
@@ -222,6 +226,9 @@ export default function App() {
         }
         if (remoteAvisos && remoteAvisos.length > 0) {
           setMuralAvisos(remoteAvisos);
+        }
+        if (remoteUsers && remoteUsers.length > 0) {
+          setSystemUsers(remoteUsers);
         }
       } catch (e) {
         console.warn('Erro ao sincronizar com Supabase:', e);
@@ -253,14 +260,16 @@ export default function App() {
     const session = sessionStorage.getItem('escritores_qgu_auth');
     const local = localStorage.getItem('escritores_qgu_auth');
     if (session !== 'true' && local !== 'true') return false;
-    const savedUser = localStorage.getItem('escritores_qgu_current_user');
+    const savedUser =
+      localStorage.getItem('escritores_qgu_current_user') ||
+      sessionStorage.getItem('escritores_qgu_current_user');
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
-        return !u.role || u.role === 'admin';
+        return u && u.role === 'admin';
       } catch {}
     }
-    return true;
+    return false;
   };
 
   // Helper to check if any user (Admin, Professor or Aluno) is authenticated
@@ -830,6 +839,7 @@ export default function App() {
     sessionStorage.removeItem('escritores_qgu_auth');
     sessionStorage.removeItem('escritores_qgu_examiner');
     sessionStorage.removeItem('escritores_qgu_current_user');
+    sessionStorage.removeItem('login_failed_attempts');
     setIsAuthenticated(false);
     setCurrentUser(null);
     setWasRedirectedFromPainel(false);
@@ -1014,7 +1024,10 @@ export default function App() {
             onUpdateStudents={setStudents}
             onUpdateAvisos={setMuralAvisos}
             onUpdateTurmas={setTurmas}
-            onUpdateUsers={setSystemUsers}
+            onUpdateUsers={(updated) => {
+              setSystemUsers(updated);
+              if (Array.isArray(updated)) updated.forEach((u) => upsertUserToSupabase(u));
+            }}
             onUpdateDisciplinas={setDisciplinas}
             onOpenReportModal={() => {}}
             onAddComplementaryMaterial={(newMat) => {
@@ -1134,7 +1147,10 @@ export default function App() {
               setTurmas(updated);
               if (Array.isArray(updated)) updated.forEach((t) => upsertTurmaToSupabase(t));
             }}
-            onUpdateUsers={setSystemUsers}
+            onUpdateUsers={(updated) => {
+              setSystemUsers(updated);
+              if (Array.isArray(updated)) updated.forEach((u) => upsertUserToSupabase(u));
+            }}
             onUpdateStudents={(updated) => {
               setStudents(updated);
               if (Array.isArray(updated)) updated.forEach((st) => upsertStudentToSupabase(st));

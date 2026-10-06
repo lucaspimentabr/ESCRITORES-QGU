@@ -1,19 +1,36 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+const DEFAULT_SUPABASE_URL = 'https://safyynezcnccdjnaxjyy.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_jbNqhO6r5HPXg_dHpdGrEQ_K-VT5WvN';
+
+const getEnv = (key: string): string => {
+  try {
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env[key]) {
+      return (import.meta as any).env[key];
+    }
+  } catch {}
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+      return process.env[key] as string;
+    }
+  } catch {}
+  return '';
+};
+
 const rawUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.SUPABASE_URL ||
-  '';
+  getEnv('VITE_SUPABASE_URL') ||
+  getEnv('SUPABASE_URL') ||
+  DEFAULT_SUPABASE_URL;
 
 const rawKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_KEY ||
-  import.meta.env.SUPABASE_KEY ||
-  import.meta.env.SUPABASE_SECRET_KEY ||
-  '';
+  getEnv('VITE_SUPABASE_ANON_KEY') ||
+  getEnv('SUPABASE_PUBLISHABLE_KEY') ||
+  getEnv('VITE_SUPABASE_PUBLISHABLE_KEY') ||
+  getEnv('SUPABASE_ANON_KEY') ||
+  getEnv('VITE_SUPABASE_KEY') ||
+  getEnv('SUPABASE_KEY') ||
+  getEnv('SUPABASE_SECRET_KEY') ||
+  DEFAULT_SUPABASE_KEY;
 
 const clean = (val: string) => (val ? val.trim().replace(/^["']|["']$/g, '') : '');
 

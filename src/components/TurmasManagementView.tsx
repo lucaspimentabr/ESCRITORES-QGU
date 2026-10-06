@@ -60,6 +60,7 @@ import {
   AulaPresencaRecord,
 } from '../types';
 import { MateriaisDidaticosView } from './MateriaisDidaticosView';
+import { isSafeUrl, sanitizeInput } from '../utils/security';
 
 interface TurmasManagementViewProps {
   turmas: Turma[];
@@ -379,16 +380,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       if (users.some((u) => u.id === profUser.id && u.turmaId === turma.id)) {
         return true;
       }
-      // 4. Default mock fallbacks for Carlos Alberto Pinheiro (user-prof-1 / prof-carlos)
-      if (
-        (profUser.id === 'user-prof-1' ||
-          profUser.id === 'prof-carlos' ||
-          (profUser.name && profUser.name.toLowerCase().includes('carlos'))) &&
-        (turma.id === 'turma-2026' || (turma.name && turma.name.includes('2026')))
-      ) {
-        return true;
-      }
-      // 5. Disciplina in turma has this professor
+      // 4. Disciplina in turma has this professor
       const turmaDiscs = availableDisciplinas.filter(
         (d) =>
           (turma.disciplinasIds && turma.disciplinasIds.includes(d.id)) ||
@@ -527,6 +519,14 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     });
   }, [turmaAvisos]);
 
+  // Disciplinas vinculadas à turma ativa (apenas as selecionadas para a turma)
+  const turmaDisciplinasVinculadas = useMemo(() => {
+    if (!currentTurma) return [];
+    const discIds = currentTurma.disciplinasIds || [];
+    if (discIds.length === 0) return [];
+    return availableDisciplinas.filter((d) => discIds.includes(d.id));
+  }, [currentTurma, availableDisciplinas]);
+
   // Modules for the active turma
   const turmaModules = useMemo(() => {
     if (!currentTurma) return [];
@@ -537,22 +537,15 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
         title: `Módulo ${m.number}: ${m.title}`,
       }));
     }
-    return availableDisciplinas.map((d, index) => ({
-      id: d.id,
-      title: `Módulo ${index + 1}: ${d.nome}`,
-    }));
-  }, [currentTurma, modules, availableDisciplinas]);
-
-  // Disciplinas vinculadas à turma ativa
-  const turmaDisciplinasVinculadas = useMemo(() => {
-    if (!currentTurma) return [];
-    const discIds =
-      currentTurma.disciplinasIds && currentTurma.disciplinasIds.length > 0
-        ? currentTurma.disciplinasIds
-        : ['disc-1', 'disc-2', 'disc-3', 'disc-4', 'disc-5'];
-    const list = availableDisciplinas.filter((d) => discIds.includes(d.id));
-    return list.length > 0 ? list : availableDisciplinas;
-  }, [currentTurma, availableDisciplinas]);
+    // Se não há módulos cadastrados, usa apenas as disciplinas explicitamente vinculadas
+    if (turmaDisciplinasVinculadas.length > 0) {
+      return turmaDisciplinasVinculadas.map((d, index) => ({
+        id: d.id,
+        title: `Módulo ${index + 1}: ${d.nome}`,
+      }));
+    }
+    return [];
+  }, [currentTurma, modules, turmaDisciplinasVinculadas]);
 
   // Helper para verificar se a disciplina foi marcada como "Não terá notas"
   const isDisciplinaSemNotas = (turmaId: string, disciplinaId: string, disciplinaNome?: string): boolean => {
@@ -636,6 +629,15 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     const selectedMod = turmaModules.find((m) => m.id === aulaFormData.moduloId);
     const moduloTitulo = selectedMod ? selectedMod.title : aulaFormData.moduloTitulo || 'Módulo Geral';
 
+    let aulaLink = aulaFormData.link.trim();
+    if (aulaLink && !/^https?:\/\//i.test(aulaLink)) {
+      aulaLink = `https://${aulaLink}`;
+    }
+    if (aulaLink && !isSafeUrl(aulaLink)) {
+      showToast('Por favor, insira um link de aula válido e seguro (começando com https://).');
+      return;
+    }
+
     const currentAulas = aulasByTurma[currentTurma.id] || [];
 
     let updatedAulas: TurmaAula[];
@@ -648,7 +650,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
               moduloId: aulaFormData.moduloId,
               moduloTitulo,
               assunto: aulaFormData.assunto.trim() || undefined,
-              link: aulaFormData.link.trim(),
+              link: aulaLink,
             }
           : a
       );
@@ -661,7 +663,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
         moduloId: aulaFormData.moduloId,
         moduloTitulo,
         assunto: aulaFormData.assunto.trim() || undefined,
-        link: aulaFormData.link.trim(),
+        link: aulaLink,
         presencas: {},
       };
       updatedAulas = [...currentAulas, newAula];
@@ -802,15 +804,15 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       editalResumo: turma.editalResumo || '',
       dataInicioInscricoes: turma.dataInicioInscricoes || '',
       dataFimInscricoes: turma.dataFimInscricoes || '',
-      dataInicioAulas: turma.gradeHoraria?.dataInicio || turma.dataInicioAulas || '01/10/2026',
-      dataConclusao: turma.gradeHoraria?.dataFim || turma.dataConclusao || '10/12/2026',
-      diaSemana: turma.gradeHoraria?.diaSemana || 'Quintas-feiras',
-      horario: turma.gradeHoraria?.horario || '20h00',
-      dataInicioGrade: turma.gradeHoraria?.dataInicio || turma.dataInicioAulas || '01/10/2026',
-      dataFimGrade: turma.gradeHoraria?.dataFim || turma.dataConclusao || '10/12/2026',
+      dataInicioAulas: turma.gradeHoraria?.dataInicio || turma.dataInicioAulas || '',
+      dataConclusao: turma.gradeHoraria?.dataFim || turma.dataConclusao || '',
+      diaSemana: turma.gradeHoraria?.diaSemana || '',
+      horario: turma.gradeHoraria?.horario || '',
+      dataInicioGrade: turma.gradeHoraria?.dataInicio || turma.dataInicioAulas || '',
+      dataFimGrade: turma.gradeHoraria?.dataFim || turma.dataConclusao || '',
       modalidade: turma.gradeHoraria?.modalidade || 'Encontros Síncronos Semanais',
-      linkEncontro: turma.gradeHoraria?.linkEncontro || 'https://meet.google.com/qgu-2026-comieadepa',
-      selectedDisciplinasIds: turma.disciplinasIds || ['disc-1', 'disc-2', 'disc-3', 'disc-4', 'disc-5'],
+      linkEncontro: turma.gradeHoraria?.linkEncontro || '',
+      selectedDisciplinasIds: turma.disciplinasIds || [],
     });
     setShowTurmaModal(true);
   };
@@ -1124,11 +1126,6 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       .map((u) => u.id);
 
     if (profsWithTurmaId.length > 0) return profsWithTurmaId;
-
-    if (turma.id === 'turma-2026') {
-      const defaultProf = users.find((u) => u.id === 'user-prof-1' || u.role === 'professor');
-      return defaultProf ? [defaultProf.id] : [];
-    }
 
     return [];
   };
@@ -2291,6 +2288,10 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     let finalUrl = newExtraUrl.trim();
     if (newExtraCategoria === 'link' && finalUrl && !/^https?:\/\//i.test(finalUrl)) {
       finalUrl = `https://${finalUrl}`;
+    }
+    if (newExtraCategoria === 'link' && finalUrl && !isSafeUrl(finalUrl)) {
+      showToast('Por favor, insira um link web seguro (iniciando com https://).');
+      return;
     }
 
     if (editingExtraId) {

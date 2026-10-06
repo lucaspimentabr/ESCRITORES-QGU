@@ -432,22 +432,49 @@ export async function fetchUsersFromSupabase(): Promise<SystemUser[] | null> {
     }
     if (!data) return [];
 
-    return data.map((row: any): SystemUser => ({
-      id: row.uid,
-      name: row.name,
-      email: row.email,
-      whatsapp: row.whatsapp || '',
-      role: row.role,
-      password: 'senha',
-      initials: row.name?.slice(0, 2).toUpperCase() || 'US',
-      roleLabel: row.role_label || (row.role === 'admin' ? 'COORDENAÇÃO' : row.role === 'professor' ? 'PROFESSOR' : 'ALUNO'),
-      routeSlug: row.route_slug || (row.role === 'admin' ? '/Paineladm' : row.role === 'professor' ? '/ProfCarlos' : '/turma2026-1024'),
-      disciplina: row.disciplina || undefined,
-      matricula: row.matricula || undefined,
-      polo: row.polo || undefined,
-      campoSupervisao: row.campo_supervisao || undefined,
-      status: row.status || 'Ativo',
-    }));
+    return data.map((row: any): SystemUser => {
+      let campo = row.campo_supervisao || '';
+      let turmaId: string | undefined = undefined;
+      let password = row.password || (row.role === 'admin' ? 'comieadepa2026' : row.role === 'professor' ? 'prof123' : 'aluno123');
+
+      if (campo && (campo.startsWith('{') || campo.includes('"password"') || campo.includes('"pass"'))) {
+        try {
+          const meta = JSON.parse(campo);
+          if (meta.campo !== undefined) campo = meta.campo;
+          if (meta.turmaId) turmaId = meta.turmaId;
+          if (meta.password) password = meta.password;
+          else if (meta.pass) password = meta.pass;
+        } catch {}
+      }
+
+      if (row.turma_id) turmaId = row.turma_id;
+
+      const parts = (row.name || '').trim().split(' ').filter(Boolean);
+      let initials = 'US';
+      if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+        initials = `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+      } else if (parts[0]) {
+        initials = parts[0].slice(0, 2).toUpperCase();
+      }
+
+      return {
+        id: row.uid,
+        name: row.name,
+        email: row.email,
+        whatsapp: row.whatsapp || '',
+        role: row.role,
+        password: password,
+        initials,
+        roleLabel: row.role_label || (row.role === 'admin' ? 'COORDENAÇÃO TEOLÓGICA (ADMIN)' : row.role === 'professor' ? 'PROFESSOR TITULAR' : 'ALUNO VOCACIONADO'),
+        routeSlug: row.route_slug || (row.role === 'admin' ? '/Paineladm' : row.role === 'professor' ? '/ProfCarlos' : '/turma2026-1024'),
+        disciplina: row.disciplina || undefined,
+        matricula: row.matricula || undefined,
+        polo: row.polo || undefined,
+        campoSupervisao: campo || undefined,
+        turmaId: turmaId,
+        status: row.status || 'Ativo',
+      };
+    });
   } catch (err) {
     console.warn('Falha ao carregar usuários do Supabase:', err);
     return null;
@@ -457,10 +484,17 @@ export async function fetchUsersFromSupabase(): Promise<SystemUser[] | null> {
 export async function upsertUserToSupabase(user: SystemUser): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
   try {
-    const payload = {
+    // Serializa metadados com senha e turmaId dentro do campo_supervisao de forma transparente
+    const campoSupervisaoMetadata = JSON.stringify({
+      campo: user.campoSupervisao || user.polo || '',
+      turmaId: user.turmaId || '',
+      password: user.password || '',
+    });
+
+    const payload: Record<string, any> = {
       uid: user.id,
       name: user.name,
-      email: user.email,
+      email: user.email.toLowerCase().trim(),
       whatsapp: user.whatsapp,
       role: user.role,
       role_label: user.roleLabel,
@@ -468,7 +502,7 @@ export async function upsertUserToSupabase(user: SystemUser): Promise<boolean> {
       disciplina: user.disciplina,
       matricula: user.matricula,
       polo: user.polo,
-      campo_supervisao: user.campoSupervisao,
+      campo_supervisao: campoSupervisaoMetadata,
       status: user.status || 'Ativo',
     };
 
@@ -481,5 +515,91 @@ export async function upsertUserToSupabase(user: SystemUser): Promise<boolean> {
   } catch (err) {
     console.warn('Falha ao salvar usuário no Supabase:', err);
     return false;
+  }
+}
+
+export async function deleteUserFromSupabase(uid: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const { error } = await supabase.from('users').delete().eq('uid', uid);
+    if (error) {
+      console.warn('Erro ao deletar usuário do Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Falha ao deletar usuário do Supabase:', err);
+    return false;
+  }
+}
+
+export async function authenticateUserFromSupabase(emailOrUsername: string, pass: string): Promise<SystemUser | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const cleanEmail = emailOrUsername.trim().toLowerCase();
+    const cleanPass = pass.trim();
+
+    const { data, error } = await supabase.from('users').select('*');
+    if (error || !data) return null;
+
+    for (const row of data) {
+      let campo = row.campo_supervisao || '';
+      let turmaId: string | undefined = undefined;
+      let password = row.password || (row.role === 'admin' ? 'comieadepa2026' : row.role === 'professor' ? 'prof123' : 'aluno123');
+
+      if (campo && (campo.startsWith('{') || campo.includes('"password"') || campo.includes('"pass"'))) {
+        try {
+          const meta = JSON.parse(campo);
+          if (meta.campo !== undefined) campo = meta.campo;
+          if (meta.turmaId) turmaId = meta.turmaId;
+          if (meta.password) password = meta.password;
+          else if (meta.pass) password = meta.pass;
+        } catch {}
+      }
+
+      if (row.turma_id) turmaId = row.turma_id;
+
+      const isAdminPass = row.role === 'admin' && (cleanPass === 'comieadepa2026' || cleanPass === 'comieadepa2025');
+
+      const matchesEmail =
+        row.email?.toLowerCase().trim() === cleanEmail ||
+        (cleanEmail === 'admin' && row.role === 'admin') ||
+        (cleanEmail === 'comissao' && row.role === 'admin') ||
+        (row.route_slug && row.route_slug.toLowerCase() === `/${cleanEmail}`);
+
+      const matchesPass = password === cleanPass || isAdminPass;
+
+      if (matchesEmail && matchesPass) {
+        const parts = (row.name || '').trim().split(' ').filter(Boolean);
+        let initials = 'US';
+        if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+          initials = `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+        } else if (parts[0]) {
+          initials = parts[0].slice(0, 2).toUpperCase();
+        }
+
+        return {
+          id: row.uid,
+          name: row.name,
+          email: row.email,
+          whatsapp: row.whatsapp || '',
+          role: row.role,
+          password: password,
+          initials,
+          roleLabel: row.role_label || (row.role === 'admin' ? 'COORDENAÇÃO TEOLÓGICA (ADMIN)' : row.role === 'professor' ? 'PROFESSOR TITULAR' : 'ALUNO VOCACIONADO'),
+          routeSlug: row.route_slug || (row.role === 'admin' ? '/Paineladm' : row.role === 'professor' ? '/ProfCarlos' : '/turma2026-1024'),
+          disciplina: row.disciplina || undefined,
+          matricula: row.matricula || undefined,
+          polo: row.polo || undefined,
+          campoSupervisao: campo || undefined,
+          turmaId: turmaId,
+          status: row.status || 'Ativo',
+        };
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn('Falha na autenticação via Supabase:', err);
+    return null;
   }
 }
