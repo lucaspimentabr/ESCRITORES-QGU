@@ -149,21 +149,11 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
       statusLabel,
       memorial,
       characterCount: memorial.length,
-      parecerId: candidateToEdit?.parecerId || `#${Math.floor(100 + Math.random() * 900)}`,
-      objectiveQuestions: candidateToEdit?.objectiveQuestions || [
-        { id: 1, topic: 'Bibliologia', isCorrect: true, candidateAnswer: 'Opção B • Inspiração verbal e plenária das Escrituras' },
-        { id: 2, topic: 'Teologia Própria', isCorrect: true, candidateAnswer: 'Opção B • Atributos comunicáveis e incomunicáveis' },
-        { id: 3, topic: 'Cristologia', isCorrect: true, candidateAnswer: 'Opção C • União hipostática conforme a Definição de Calcedônia' },
-        { id: 4, topic: 'Pneumatologia', isCorrect: true, candidateAnswer: 'Opção B • Batismo com o Espírito Santo (Glossolalia)' },
-        { id: 5, topic: 'Antropologia Bíblica', isCorrect: true, candidateAnswer: 'Opção B • Imago Dei e constituição bíblica' },
-        { id: 6, topic: 'Soteriologia', isCorrect: true, candidateAnswer: 'Opção C • Justificação pela graça mediante a fé' },
-        { id: 7, topic: 'Eclesiologia', isCorrect: true, candidateAnswer: 'Opção A • Missão sacerdotal e comunhão da Igreja' },
-        { id: 8, topic: 'Escatologia', isCorrect: objectiveCorrect >= 8, candidateAnswer: 'Opção B • Pré-tribulacionismo e retorno glorioso' },
-        { id: 9, topic: 'Hermenêutica Sagrada', isCorrect: objectiveCorrect >= 9, candidateAnswer: 'Opção B • Exegese contextual' },
-      ],
+      parecerId: candidateToEdit?.parecerId || `#PAR-${Date.now().toString().slice(-4)}`,
+      objectiveQuestions: candidateToEdit?.objectiveQuestions || [],
       discursive: {
-        prompt: candidateToEdit?.discursive?.prompt || '“O que significa, para você, ser um escritor cristão comprometido com a fidelidade bíblica?”',
-        candidateAnswer: candidateToEdit?.discursive?.candidateAnswer || memorial || 'Compromisso irrestrito com as Escrituras e edificação da igreja.',
+        prompt: candidateToEdit?.discursive?.prompt || 'Memorial vocacional para produção literária teológica.',
+        candidateAnswer: candidateToEdit?.discursive?.candidateAnswer || memorial || '',
         evaluatorScore,
         maxScore: 10,
         preliminaryVerdict:
@@ -172,7 +162,7 @@ export const CandidateFormModal: React.FC<CandidateFormModalProps> = ({
             : status === 'REPROVADO'
             ? 'Requer amadurecimento e aprofundamento teológico.'
             : 'Em análise pelo colegiado.',
-        theologicalNotes: theologicalNotes || 'Em conformidade com a declaração de fé da COMIEADEPA.',
+        theologicalNotes: theologicalNotes || '',
       },
     };
 

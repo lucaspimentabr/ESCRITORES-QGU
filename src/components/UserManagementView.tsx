@@ -415,7 +415,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         id: `user-${Date.now()}`,
         name: formData.name.trim(),
         email: formData.email.trim(),
-        whatsapp: formData.whatsapp.trim() || '(91) 98000-0000',
+        whatsapp: formData.whatsapp.trim(),
         campoSupervisao: formData.campoSupervisao.trim() || 'Geral',
         polo: formData.campoSupervisao.trim() || 'Geral',
         role: formData.role,

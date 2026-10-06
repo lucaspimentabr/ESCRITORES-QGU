@@ -1788,7 +1788,7 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
     const cleanEmail =
       newStudentEmail.trim() ||
       `${cleanSlugPart || 'aluno' + Date.now()}@comieadepa.org.br`;
-    const cleanPhone = newStudentPhone.trim() || '(91) 98000-0000';
+    const cleanPhone = newStudentPhone.trim() || '';
     const routeSlug = `/aluno-${cleanSlugPart || nextMatricula.toLowerCase()}`;
 
     // 1. Criação do Usuário no Sistema (SystemUser) para o aluno
@@ -1813,28 +1813,19 @@ export const TurmasManagementView: React.FC<TurmasManagementViewProps> = ({
       onUpdateUsers([newSystemUser, ...users]);
     }
 
-    // 2. Registro Acadêmico do Aluno na Turma
+    // 2. Registro Acadêmico do Aluno na Turma (inicia limpo sem notas ou faltas fictícias)
     const newStudent: StudentAcademicRecord = {
       alunoId: newStudentId,
       alunoName: newStudentName.trim(),
       matricula: nextMatricula,
       turmaId: currentTurma.id,
       polo: newStudentPolo.trim() || 'Geral',
-      frequenciaPercent: 100,
-      presencas: 20,
-      aulasTotais: 20,
+      frequenciaPercent: 0,
+      presencas: 0,
+      aulasTotais: 0,
       submissions: [],
-      notas: [
-        {
-          moduloNumber: 1,
-          moduloTitle: 'Introdução e Hermenêutica Bíblica',
-          nota: 9.5,
-          feedback: 'Vocacionado matriculado com excelente aptidão inicial.',
-          dataLancamento: new Date().toLocaleDateString('pt-BR'),
-          professorName: 'Coordenação Teológica',
-        },
-      ],
-      mediaGeral: 9.5,
+      notas: [],
+      mediaGeral: 0,
       statusAcademico: 'Cursando',
     };
 

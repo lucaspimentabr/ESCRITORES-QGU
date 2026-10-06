@@ -422,36 +422,29 @@ export const ProcessoSeletivoView: React.FC<ProcessoSeletivoViewProps> = ({
       polo: manualPolo,
       church: manualChurch.trim() || `Assembleia de Deus - ${manualPolo}`,
       jurisdiction: `COMIEADEPA – ${manualPolo}`,
-      pastor: manualPastor.trim() || 'Pastor Presidente',
-      communionStatus: 'Membro em Comunhão • Cadastro Manual Direto',
+      pastor: manualPastor.trim() || '',
+      communionStatus: 'Membro em Comunhão • Cadastro Manual',
       registrationDate:
         new Date().toLocaleDateString('pt-BR') +
         ` às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
       objectiveScore: {
-        correct: 9,
-        total: 9,
-        percentage: 100,
+        correct: 0,
+        total: 0,
+        percentage: 0,
       },
       status: manualInitialStatus,
       statusLabel: manualInitialStatus === 'APROVADO' ? 'Aprovado' : 'Em Análise',
-      memorial:
-        manualMotivation.trim() ||
-        'Candidato cadastrado manualmente no sistema pela Coordenação, com dispensa de prova teológica.',
+      memorial: manualMotivation.trim() || '',
       characterCount: (manualMotivation.trim() || '').length,
-      parecerId: `#${Math.floor(100 + Math.random() * 900)}`,
-      objectiveQuestions: [
-        { id: 1, topic: 'Bibliologia', isCorrect: true, candidateAnswer: 'Dispensado de Avaliação Objetiva (Cadastro Administrativo)' },
-        { id: 2, topic: 'Teologia Própria', isCorrect: true, candidateAnswer: 'Dispensado de Avaliação' },
-      ],
+      parecerId: `#PAR-${Date.now().toString().slice(-4)}`,
+      objectiveQuestions: [],
       discursive: {
         prompt: 'Memorial vocacional para produção literária teológica.',
-        candidateAnswer:
-          manualMotivation.trim() ||
-          'Inclusão manual homologada pela coordenação do processo seletivo.',
-        evaluatorScore: 10,
+        candidateAnswer: manualMotivation.trim() || '',
+        evaluatorScore: 0,
         maxScore: 10,
-        preliminaryVerdict: 'Homologado Direto (Sem Prova)',
-        theologicalNotes: 'Candidato admitido sem necessidade de realização de prova.',
+        preliminaryVerdict: manualInitialStatus === 'APROVADO' ? 'Homologado Administrativamente' : 'Em Análise',
+        theologicalNotes: 'Inclusão manual via painel da coordenação.',
       },
     };
 

@@ -141,7 +141,7 @@ export const AdminAcademicManagement: React.FC<AdminAcademicManagementProps> = (
       id: `user-${Date.now()}`,
       name: userName.trim(),
       email: userEmail.trim(),
-      whatsapp: userWhatsapp.trim() || '(91) 98000-0000',
+      whatsapp: userWhatsapp.trim(),
       role: userRole,
       password: userPass.trim() || 'comieadepa2026',
       initials,
